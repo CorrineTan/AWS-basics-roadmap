@@ -1,0 +1,1 @@
+> Preparing for the DAS exam and summary of the important knowledge I learn from Udemy Course https://www.udemy.com/course/aws-data-analytics/

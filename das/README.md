@@ -74,8 +74,14 @@ Security of KDS: <br>
 
 Important for Consumers:
 1. Kinesis SDK - GetRecords: if 5 consumers application comsume from the same shard, means every consumer can poll once a second and receive less than 400KB/s. 
+
+If 10 consumers application concurrently from 1 shard, getrecords() has average latency of 2 seconds. Because - upto 5 gerecords API calls per second.  
+
 2. KCL: checkpointing (resume progress), shard discovery, DynanoDB - checkpointing (one row per shard).<br>
 ExpiredIteratorException - increase WCU
+
+For example, you have 8mb/s data from KPL and 2mb/s data from KCL. That's because DDB is under provisioned, checkpointing does not happen fast enough and results in a lower throughput for your KCL based application. Make sure to increase the RCU / WCU.
+
 3. Kinesis Connector Library (S3, DDB, Redshift, ElasticSearch)
 
 
@@ -101,6 +107,8 @@ aws kinesis get-records --shard-iterator <share_iterator_id>
 #### Other KDS Knowledge:
 
 1. Kinesis Enhanced Fan Out: each consumer get 2MB/s of provisioned throughput per shard (per consumer). because it pushes data to consumers over HTTP/2. (default limit of 20)
+
+- no matter how many consumers you have, in enhanced fan out mode, each consumer will receive 2MB per second of throughput and have an average latency of 70ms. 
 
 2. Scale Kinesis: <br>
 - adding shards: shard splitting (increase stream capacity). Opposite is to merge shards. 
@@ -174,6 +182,8 @@ Need to go to aws-kinesis and chagne the agent.json, to add a flow with KDF or K
 ### IOT ("Thing")
 IOT Thing - Thing registry - Device gateway - (send message) - IoT message broker - IoT Rules Engine (target: Kinesis, SQS, Lambda) - Device Shadow
 
+IoT device Gateway protocol - FTP
+
 ### DMS - database migration service
 
 - Source: on-premise and EC2 (Oracle, MSSQL, MySQL, MariaDB, PostgresSQL, MongoDB, SAP, DB2); Azure (Azure SQL Database); Amazon RDS (all including Aurora); S3
@@ -201,14 +211,226 @@ OLAP: Teradata or Oracle to Redshift
 
 ### Snow Family
 
-highly-secure, portable devices to collect and process data at the edge
+highly-secure, portable off-line physical devices to collect and process data at the edge and migrate data into and out of AWS.
 
+edge locations: limited/no internet access
 
+Data migration: snowcone, snowball edge, snowmobile.
+
+Edge computing: snowcone, snowball edge.
+
+### MSK
+
+Fully managed - MSK creates and manage Kafka brokers nodes and Zookeeper nodes for you. Data stored on EBS volumes.
+
+1 difference MSK vs Kinesis: MSK can custom configuration to send large messages (10MB), but kinesis hard limit of 1MB. 
+
+#### MSK flow
+
+Kinesis, IOT, RDS as Producers - (write topic to) - MSK Cluster (3 brokers) - (poll from topic) to Consumers (EMR, S3, SageMaker, Kinesis, RDS)
+
+#### MSK security 
+
+1. Encrpytion in MSK:
+- Encryption in flight: TLS between brokers
+- Encryption at rest: KMS
+
+2. Network security: security groups
+
+3. Authentication: who can read/write to kafka topics:
+- MutualTLS(AuthN) + Kafka ACLs(AuthZ)
+- SASL/SCRAM(AuthN) + Kafka ACLs(AuthZ)
+- IAM (AuthN + AuthZ)
+
+#### MSK Monitoring
+
+- CloudWatch metrics
+- Broker Log Delivery 
+- Prometheus
+
+#### MSK Others
+
+- MSK Connect
+- MSK Serverless (auto provision resources and scales compute & storage)
+
+#### Kinesis vs MSK 
+
+1. KDS: 1MB hard limit size.   MSK: configurable for higher
+
+2. KDS: Data Stream with Shards.    MSK: Kafka Topics with Partitions
+
+3. KDS: Shard spliting and merging. MSK: can only add partitions to a topic (cannot remove)
+
+4. KDS: TLS inflight encryption.    MSK: PLAINTEXT or TLS inflight encryption.
 
 
 # Domain 2: Storage
 
 Main Services: S3+ Glacier, DynamoDB, ElasticCache
+
+### S3
+
+#### S3 Use Cases
+- Backup and Storage
+- Disaster Recovery
+- Archive
+- Hybrid Cloud storage
+- Application hosting
+- Media hosting
+- Data lakes & big data analytics
+- Software delivery
+- Static website
+
+#### S3 Basics
+
+- S3 objects(files) have a key - full path (composed of a prefix + object name)
+
+- S3 max object size: 5TB. If upload more than 5GB, must use "multi-part upload". 
+
+- versioning - bucket level, delete marker
+
+- Replication: must enable versioning => only new objects are replicated. (the exisitng ones need to be s3 batch replication)
+1. CRR (cross-region): compliance, lower latency access, replication across accouts
+2. SRR(same-region): log aggregation, live replication between production and test accoutns
+3. No chain of replication.
+
+#### S3 Storage types
+
+- S3 standard
+- S3 Infrequent Access (IA): backup copies of on-premise data, or data you can recreate. - 30 days
+- S3 one zone-infrequent access. Use case: s3 thumbnails with lifecycle to expire them after 60 days.
+- s3 glacier instant: milliseconds retrieval - 90 days
+- s3 glacier flexible: expedited(1-5min), standard(3-5hours), bulk(5-12hours)
+- s3 glacier deep archieve: standard(12hours), bulk(48hours) - 180days to 700days 
+- s3 intelligent tiering
+
+#### S3 Event Notifications
+
+use case: generate thumbnails of images uploaded to s3
+
+- Advanced filtering
+- multiple destinations
+- eventbridge capabilities: archive, replay events, reliable delivery.
+
+Ue Lifecycle rules to transition actions, expiration actions, 
+
+#### S3 Performance
+
+- Multi-parts upload: must use for file > 5GB (recommended for file > 100MB)
+- Transfer acceleration: use a edge location
+- S3 Byte-range fetches: speed up downloads
+
+#### S3 Select 
+
+retrieve less data using SQL by performing server-side filtering
+
+#### S3 Encryption
+
+- SSE(server-side)-S3: must set header "x-amz-server-side-encryption": "AES256"
+- SSE-KMS: must set header "x-amz-server-side-encryption": "aws:kms".  Limit: GenerateDataKey KMS API service quota. 
+- SSE-C(customer-provided)
+- CSE(client-side)
+
+#### S3 Access Points & Object Lambda
+
+ Access Points: one policy per access point (per appartment): easier to manage than complex bucket policies
+
+ Object Lambda: change object before it is retrived by the caller application
+
+### DynamoDB
+
+NOSQL serverless database: distributed, doesn't support query joins, aggregation (sum, avg). But can scale horizontally ().
+
+Each DDB tables has a primary key. Infinite number of items(rows, max_size = 400KB). Each item has attributes (can be added over time - can be null - columns).
+
+#### DDB Primary Key
+
+- Partition Key (HASH): must be unique and diverse
+
+- Partition Key + Sort Key (HASH + RANGE)
+
+#### DDB RCU and WCU
+
+read/write capacity modes
+
+- Default: Provisioned mode
+
+- On-demand mode (more expensive)
+
+- Throttling reasons: (only happen with provision, not on-demand)
+ProvisionedTrhoughputExceededException - burst capacity has been consumed. Retry: exponential backoff.
+
+1. Hot Keys: one partition key is being read too many times (popular item)
+2. hot partitions
+3. very large items
+
+solution:
+1. exponential backoff
+2. distribute partition keys
+3. if RCU issue, use DAX (ddb accelerator)
+
+
+- 1 WCU =  1 write per sec for an item up to 1KB.
+
+- RCU: strongly consistent read vs eventually consistent read
+
+So 1 RCU = 1 Strongly consistent read per sec, or 2 eventually consistent reads per sec, for an item up to 4KB.
+
+WCUs and RCUs are spread evenly across parititions.
+
+Partitions internal: copies of your data that live on specific servers. 
+
+#### DDB APIs
+
+1. Writing Data: PutItem, UpdateItem, Conditional Writes
+2. Reading Data: GetItem, Query (KeyConditionExpression, FilterExpression), Scan (read an entire table)
+3. Deleting Data: DeleteItem, DeleteTable
+4. Batch Operations: BatchWriteItem (25 putitem or deleteitm, but cannot update). BatchGetItem.
+
+#### DDB Index
+
+1. LSI: Local secondary index 
+
+It's an alternative sort key. (same partition key as of base table)
+
+2. GSI: global second index
+
+It's an alternative primary key. (must Provision WCU and RCUs)
+
+Important: if writes are thrttled on GSI, then the main table will be throttled.
+
+#### DDB PartiQL
+
+sql-like query
+
+#### DDB DAX
+
+It solves the hot key problem (too many reads).
+
+5 min TTL for cache (default)
+
+#### DDB Streams
+
+Ordered stream of item level modifications (create, update, delete).
+Destinations: KDS, Lambda, KCL.
+
+It also has shards.
+
+#### DDB TTL
+
+auto delete items after an expiry timstamp - unix epoch timestamp - called "expire_on" (TTL settings you can set)
+
+#### DDB others:
+
+1. DDB and S3: 1) Store large objects pattern: use a S3 bucket to store the object URL, then URL put into DDB tables 2) DDB index S3 objects Metadata
+
+2. DDB Security: 1) access DDB without internet: VPC endpoints   2) encryption in transit: SSL/TLS
+
+### ElasticCache
+
+In-memory database: high performance, low latency. fully managed Redis(key-value, more popular) or Memcached(object store). 
+
+Main purpose: reduce the load off of database for read intensive workloads.
 
 # Domain 3: Processing
 

@@ -436,6 +436,138 @@ Main purpose: reduce the load off of database for read intensive workloads.
 
 Main Services: Lambda, ML, Glue, EMR, SageMaker, Data Pipeline
 
+### AWS Lambda - serverless data processing
+
+a way to run code snippets in the cloud, continuous scaling.
+
+Use case: Real-time file/stream processin, ETL, cron replacement, process AWS Events.
+
+Limits: 1000 concurrent executions per region. 15min timeout.
+
+Lambda is Stateless. You need to use S3 or DDB to keep track of the state. 
+
+### AWS Glue - Table definitions and ETL
+
+#### Glue Basics
+
+Serverless descrovery and definition of table definitions and schema (in S3 data lakes, RDS, Redshift, EMR, Athena), and custom ETL jobs(trigger driven, on a schedule or on demand)
+
+Glue crawler: scans data in S3, creates schema for unstracture data to be used in Athena, EMR, Reshift, then use QuickSight to visualize. 
+
+Pay attention to S3 partition. Need to put the thing you want to query against at top partition like device/yy/mm/dd
+
+Glue and Hive: Hive running on EMR run SQL-like queries from EMR. Glue data catalog can serve as Hive metastore.
+
+Glue ETL: Spark under the hood (scala or python). DPU (data processing units) to Spark job performance. 
+
+Glue ETL has Glue scheduler, or Glue triggers.
+
+Glue DynamicFrame is a collection of DynamicRecords(self-dscribing, have a schema)
+
+When modifying the DataCatalog - either rerun the crawler, or have script use "enableUpdateCatalog" and "partitionKeys" options
+
+#### GLUE ETL - Transformations
+
+- Bundled transformation: DropFields, DropNullFields, Filter, Join, Map.
+
+- ML transformation: FindMatches ML
+
+- Format conversions: CSV, JSON, Avro, Parquet, ORC, XML
+
+- All Spark transformations (K-Means)
+
+- ResolveChoice: deals with ambiguities in DynamicFrame and returns a new one  
+
+#### Running Glue jobs:
+
+- cron style time-based schedules
+
+- job bookmarks: persist state from the job run ( so don't end up with reprocessing the same data) (important: only handle new rows, not updated rows)
+
+- CloudWatch events: when ETL succeeds or fails, fire off a labmda function.  
+
+#### Glue others
+
+1. Glue studio: visualize DAG
+2. Glue DataBrew: receipe (really like Dataiku!!), pre-process data
+3. Glue Elastic Views: build materialized views, SQL interface
+
+### Lake Formation 
+
+It's on top of Glue. Loading data and monitoring data flows. Help build a data lake.
+
+Workflow of build data lake using lake formation: 
+
+1. glue connection on your data source 2. create a s3 bucket 3. register s3 to lake formation, grant permissions 4. create database in lake formation for data catalog, grant permissions  5. use a blueprint for a workflow  6. run the workflow  7. grant select permission to whoever needs to read it.
+
+Cross account access to lake formation: RAM - resouce access manager.
+
+Lake Formation can implement column level security on your data lake.
+
+### EMR
+
+- Master, Core (store HDFS data on HDFS or EMRFS), Task node(can be spot to save money)
+- Long-running cluster vs transient cluster
+
+#### EMR Storage
+
+1. HDFS: hadoop distributed file system
+
+- multiple copies store across cluster instances for redundancy.
+- file store as blocks (128 MB default size)
+- But! ephemral - lost if cluster is terminated.
+
+2. EMRFS
+
+- access S3 as if it were HDFS
+- emrfs consistent view: no longer a pain anymore! because of S3 strong consistency.
+It used to, as multiple nodes might write to single s3 file at a time.
+
+3. Local file system  - temp data (buffers, caches)
+
+4. EBS for EBS
+
+#### EMR Hadoop and services
+
+HDFS -> YARN (resource negotiator) -> MapReducer (mapper: map data to key/value pairs, reducers: reduce intermediate results to final output)
+
+-  Scaling: auto vs managed
+
+scale-up: first add core nodes, then add task nodes, up to max units
+
+scale-down: first remove task nodes, then core nodes, no further than minimum. Always start with spot
+
+- Pig writing mapper/reducer not using Java but use Pig Latin(SQL like syntax)
+
+- Presto: interactive queires at petabyte scale  (but stil for OLAP not OLTP) , in memory
+
+- Zeppelin: like spark shell - can run spark code interactively. speeds up the development cycle. Makes spark feel more like a data science tool.
+
+- EMR notebooks: backed up to s3, hosted inside VPC, accessed only via aws console.
+
+- Hue: hadoop user experience
+
+- Splunk: makes machine data accessible, usable, valuable to everyone. Operational tool. 
+
+- Flume: streams data into cluster (orginally made to handle log aggregation)
+
+- MXNet: framework of Deep Learning (like Tensorflow)
+
+- S3DistCP: copy large amounts of data from s3 into hdfs, or from hdfs into s3.
+
+- Ganglia (monitor), Mahout (ML), Accumulo (NoSQL db), Sqoop(relational db connector), HCatalog(table and storage management for hive metastore), Kinesis Connector (access KDS in your scripts), Ranger (data security manager for Hadoop)
+
+- Kerberos: secure user authentication
+
+
+#### Data Pipeline 
+
+Like Hadoop Oozie - flow of jobs. 
+
+Destination: S3, RDS, DDB, Redshift, EMR
+
+Activities: EMR, HIVE, COPY, SQL, scripts
+
 # Domain 4: Analysis
 
 Main Services: Elasticsearch, Athena, Redshift

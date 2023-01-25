@@ -568,9 +568,92 @@ Destination: S3, RDS, DDB, Redshift, EMR
 
 Activities: EMR, HIVE, COPY, SQL, scripts
 
+
 # Domain 4: Analysis
 
+### Kinesis Analytics - Querying streams of data
+
 Main Services: Elasticsearch, Athena, Redshift
+
+Reference table.
+
+KDA + Lambda/Flink (processing data streams: Flink sources -> Flink Application DataStream API -> Flink Sinks)
+
+use case: 1) streaming ETL  2) continuous metric generation  3) responsive analytics
+
+Feature: schema discovery. 
+
+RANDOM_CUT_FOREST: find outlier in streaming data.
+
+### Opensearch
+
+A fork of elasticsearh and kibana. Mainly for search and analytics. A search engine build on Lucine.
+
+It can also be a data piepline. Kinesis replcaes Beats and LogStash. ClickStream analysis.
+
+3 concepts: documents, types, indices.
+
+Fully managed but not serverless (still need to scale up and down)
+
+Opensearch security: resource-based, identity-based, IP-based, request signing, VPC.
+
+
+- Storage:
+
+1. Hot storage: EBS, instance store
+
+2. Ultra Warm: s3 + caching, dedicated master
+
+3. Cold storage: S3 (cheaper), dedicated master
+
+- Index state management: move indices from hot -> ultrawarm -> cold storage over time.
+
+You can do index roolups, index transforms, 
+
+- Stability:
+
+1. 3 dedicated master nodes is best : avoids split brain
+
+2. Don't run out of disk space: minimum: source data * (1 + number of replicas) * 1.45
+
+3. choose number of shards: (source data+room to grow) * (1+indexing overhead)/desired shard size 
+
+4. Choose instance types
+
+- Peformance issue:
+JVM memory presuure: cause of too many shards in a cluster. fix: Fewer shards - delete older shards, old unused data, unused indices. 
+
+### Athena - Serverless interactive queries of S3 data
+
+Interactive query service for S3 (SQL), serverless, Presto under the hood. 
+
+- Data formats supported: 
+Splittable: ORC(columnar), Parquest(columnar), Avro. <br>
+human readable: CSV, JSON. 
+
+- Use case: ad-hoc query for web logs, query staging data before loading, analyze cloudtrail/cloudfront/vpc/elb logs in s3, integrated with notebooks/quicksight/JDBC/ODBC visualization tools.
+
+- Athena workgourps: organize users/teams/apps/workloads with Workgroup
+
+#### Athena Performance: 
+
+1. use columnar data (ORC, Parquet)
+
+2. smaller number of large files is better than large number of small files
+
+3. Use partitions: if adding partition after the fact, use MSCK REPAIR TABLE command
+
+#### Athena ACID transactions
+
+Purpose: concurrent user modify the same row at the same time, work consistently.
+
+Powered by apache Iceberg. concurrent users can safely make row-level changes. 
+
+Time travel operations : recover data recently deleted with a SELECT statement.
+
+Another way to have ACID transactions: Iceberg, or Lake Formation.
+
+### Amazon Redshift - Fully-managed, petabyte-scale data warehouse 
 
 # Domain 5: Visualization
 

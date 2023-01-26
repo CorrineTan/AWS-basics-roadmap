@@ -655,6 +655,104 @@ Another way to have ACID transactions: Iceberg, or Lake Formation.
 
 ### Amazon Redshift - Fully-managed, petabyte-scale data warehouse 
 
+Designed for OLAP, NOT OLTP. via ML. MPP.
+
+#### Redshift Architecture
+
+- Leader Node
+
+- Compute Node: Dense storage, dense compute. Compute Node consists of node slices to process chunks of data being given to it.
+
+#### Redshift Spectrum
+
+Query exabytes of unstructured data in S3 without loading to Redshift. (same as athena + glue catalog on top of S3 data lake)
+
+Performance: 
+- MPP: massively parrallel processing
+- Columnar Data Storage
+- Column Compression
+
+#### Redshift Durability
+
+- replications within cluster: original, relica, compute nodes, s3 backups
+
+- multi-az for RAS3 cluster
+
+- Scaling: vertical and horizontal. During scaling, new cluster is created, CNAME is flipped, data moved in parallel to new compute nodes.
+
+#### Redshift Distribution Styles:
+
+- Auto: based on size of data
+- EVEN: round robin fasion
+- KEY: based on one column
+- ALL: entire table copied to every node
+
+#### Redshift Sort Keys
+
+rows are stored on disk in sorted order based on the column you designate as a sort key
+
+#### Redshift importing/exporting data
+
+- Copy command (from outside table copy to redshift) (but if data is already in redshift, use "insert into... select" or "create table as...")
+
+special case: narrow tables(lots of rows, few columns: load with single copy transaction, otherwise hidden metadata columns cosume too much spaces)
+
+- unload command
+
+- enhanced vpc routing
+
+- DBLINK: connect Redshift to PostgresSQL
+
+#### Other Redshift features
+
+- WLM: Workload management (auto and manual)
+
+Prioritize short, fast queries vs long slow queries. 
+
+- Concurrency Scaling
+
+Auto add cluster capacity to handle increase in concurrent read queries
+
+- Short Query Acceleration (SQA)
+
+- VACUUM command: recover space from deleted rows.
+
+- Anti-pattern: 1) small dataset: use RDS instead.   2). OLTP: RDS/DDB   3). Unstructured: ETL with EMR
+4) BLOB: store reference to large binary files in S3
+
+#### Redshift resize
+
+- Elstic resize
+- classic resize: change node type
+- snapshot, restore, resize
+
+#### Redshift new features
+
+- RA3 nodes with managed storage
+- Redshift data lake export: unload redshift query to s3 in parquet format
+- AQUA: advanced query accelerator
+
+#### Redshift Security
+
+- HSM: hardware security module: client and server certs.
+
+- Grant or Revoke: access priviledges for user and group
+
+#### RDS - relational database
+
+- Atomicity: part of transaction failed, entire transaction is invalidated.
+
+- Consistency: data as part of transaction, must adhere to all defined rules and restrictions
+
+- Isolation: each transaction is independing unto itself => concurrency control
+
+- Durability: all the change made to db be permanent once a transactino is successfully completed. 
+
+#### Aurora
+
+MySQL and PostgresSql - compatible
+
+
 # Domain 5: Visualization
 
 Main Services:QuickSight, KMS, CloudHSM

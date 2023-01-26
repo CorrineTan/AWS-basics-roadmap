@@ -757,6 +757,22 @@ MySQL and PostgresSql - compatible
 
 Main Services:QuickSight, KMS, CloudHSM
 
+### QuickSight - Business Analytics and visualization in the cloud
+
+SPICE: data sets are imported in SPICE: super-fast, parallel, in-memory calculation engine.
+
+QuickSight+Redshift from different region: create a new SG with an inbound rule authorizing accesss from IP range of Quicksight servers in that region.
+
+- User management: Active Directory connector for Enterprise Edition
+
+- Quicksight ML insights: ML powered anomaly detection, forecasting 
+
+- Quicksight Q: NLP business question
+
+- Visual Types: bar charts, line graphs, scatter plots, pie graphs, pivot tables.
+
+
+
 # Domain 6: Security
 
 # Everything Else

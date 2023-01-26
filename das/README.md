@@ -771,8 +771,54 @@ QuickSight+Redshift from different region: create a new SG with an inbound rule 
 
 - Visual Types: bar charts, line graphs, scatter plots, pie graphs, pivot tables.
 
-
-
 # Domain 6: Security
 
-# Everything Else
+- KDS: SSL, KMS, client-side, VPC endpoint/private link, KCL (must read/write to DDB)
+
+- KDF: IAM, KMS, VPC/Private link
+
+- KDA: IAM
+
+- SQS: HTTPS, KMS, SQS queue access policy, IAM, client side, VPC endpoint
+
+- IOT: Cognito, IOT policy, IAM, Rules Engine (roles)
+
+- S3: IAM, S3 bucket policy, ACL, HTTPS, ss3-s3, sse-kms, sse-c, client-side, vpc-endpoint, CORs for protecting website
+
+- DDB: TLS, KMS, IAM, VPC Endpoint (gateway)
+
+- RDS/Aurora: VPC (network isolations), SG, KMS, SSL, IAM, user permission with db, TDS(transparent data encryption)
+
+- Lambda: IAM, KMS, SSM, VPC
+
+- Glue: IAM, SSL(JDBC), Data catalog(KMS, resource policy (like s3)), KMS, SEE-KMS(cw logs, bookmark)
+
+- EMR: SSH key pairs, IAM, EC2 SG(master, slaves), Kerberos(authen to AD), Ranger(external EC2)
+
+At-rest for EMRFS( sse-s3, sse-kms, client-side), encrpytion in local disk (open-source HDFS encryption, instance store encryption (NVMe, LuKS), EBS(kms-root volume, luks(not root))).
+
+In-tranist: node to node, EMRFS between s3 to cluster node, TLS encryption.
+
+- Elasticsearch: vpc, ES policy, KMS, encrypttion in-transit, IAM/Cognito, AD+SAML (kibana)
+
+- Redshift: VPC, SG, encryption in flight(JDB, SSL), at-rest(KMS, HSM(connection)), COPY/UNLOAD command
+
+- Athena: IAM, S3, encryptio at rest for s3, in-transit(TLS), AWS Glue Catalog(fine grained access)
+
+- QuickSight: IAM, AD, federeated login, MFA, encryption-at-rest(SPICE), row-level security
+
+- STS: security token service: grant limited/tmp access to AWS resources. Cross account access, federation(AD), thirdparty providers. AssumeRole API.
+
+- Identiy Federation: outside AWS to assume temp roles for accessing AWS
+
+3rd party: LDAP, AD, SSO, Open ID, Cognito. Don't create IAM users. 
+
+Custom Identity Broker application: msut determine the appropariate IAM policy
+
+Cognito: Federated Identity Pools For public applcation (eg: provite temp access to write to s3 using facebook login)
+
+- VPC endpoints: allow you connect to aws service useing private network instead of public www network. 
+
+Gateway: provision a target and must be used in a route table (s3, ddb)
+
+Interface: ENI(private IP address) as entrypoint (attach SG) - VPC PrivateLink
